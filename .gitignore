@@ -1,0 +1,11 @@
+vendor/
+wheelhouse/
+.python-runtime
+.venv/
+.browser-profile/
+data/
+__pycache__/
+*.pyc
+.env
+*.log
+dist/
