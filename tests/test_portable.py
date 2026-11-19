@@ -1,3 +1,6 @@
+from contextlib import redirect_stdout
+import io
+import json
 import os
 import subprocess
 import sys
@@ -13,6 +16,20 @@ import setup_deps
 
 
 class PortableTests(unittest.TestCase):
+    def test_cli_json_survives_legacy_windows_console_decoding(self):
+        title = '作业详情'
+        for failed in (False, True):
+            with self.subTest(failed=failed), patch.object(sys, 'argv', ['cx.py', 'check']), \
+                    patch.object(cx, 'execute') as command, redirect_stdout(io.StringIO()) as output:
+                if failed:
+                    command.side_effect = cx.TaskError(title)
+                else:
+                    command.return_value = {'title': title}
+                self.assertEqual(cx.main(), int(failed))
+                received = output.getvalue().encode('utf-8').decode('gbk', errors='replace')
+                expected = {'ok': not failed, 'error' if failed else 'title': title}
+                self.assertEqual(json.loads(received), expected)
+
     def test_cached_wheels_allow_first_setup_without_network(self):
         with tempfile.TemporaryDirectory() as directory:
             project = Path(directory)
@@ -44,6 +61,30 @@ class PortableTests(unittest.TestCase):
         self.assertIn('--remote-debugging-port=9333', command)
         self.assertIn('--user-data-dir=' + str(ROOT / '.browser-profile'), command)
         self.assertEqual(command[0], sys.executable)
+
+    def test_open_reports_not_ready_if_edge_spawns_without_debugger(self):
+        url, endpoint = 'https://i.chaoxing.com/base', 'http://127.0.0.1:9222'
+        with (patch.object(cx, 'browser_command', return_value=['edge.exe']),
+              patch.object(cx.subprocess, 'Popen') as spawn,
+              patch.object(cx, 'debugger_is_ready', return_value=False),
+              patch.object(cx.time, 'monotonic', side_effect=[0, 1])):
+            with self.assertRaisesRegex(cx.TaskError, 'BROWSER_START_NOT_READY'):
+                cx.launch_browser(url, endpoint, timeout=1)
+        spawn.assert_called_once()
+
+    def test_open_waits_for_local_debugger_and_reuses_an_existing_connection(self):
+        url, endpoint = 'https://i.chaoxing.com/base', 'http://127.0.0.1:9222'
+        for ready_sequence, reused in (([False, False, True], False), ([True], True)):
+            with (self.subTest(reused=reused),
+                  patch.object(cx, 'browser_command', return_value=['edge.exe']),
+                  patch.object(cx.subprocess, 'Popen') as spawn,
+                  patch.object(cx, 'debugger_is_ready', side_effect=ready_sequence),
+                  patch.object(cx.time, 'sleep'),
+                  patch.object(cx.time, 'monotonic', return_value=0)):
+                result = cx.launch_browser(url, endpoint, timeout=1)
+                self.assertEqual(result['browser'], 'ready')
+                self.assertEqual(result['reused'], reused)
+                self.assertEqual(spawn.call_count, int(not reused))
 
     def test_remote_and_malformed_debugging_endpoints_stop_before_connection(self):
         self.assertTrue(hasattr(cx, 'validate_endpoint'), 'endpoint validation is missing')

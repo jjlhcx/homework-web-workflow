@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import base64
 import hashlib
+import http.client
 import json
 import os
 from pathlib import Path
@@ -354,16 +355,46 @@ def browser_command(url, endpoint):
             '--user-data-dir=' + str(ROOT / '.browser-profile'), url]
 
 
-def launch_browser(url, endpoint):
+def debugger_is_ready(endpoint):
+    port = validate_endpoint(endpoint)
+    connection = http.client.HTTPConnection(urlparse(endpoint).hostname, port, timeout=0.5)
+    try:
+        connection.request('GET', '/json/version')
+        response = connection.getresponse()
+        if response.status != 200:
+            return False
+        payload = json.loads(response.read(8192))
+        if not isinstance(payload, dict) or not isinstance(payload.get('webSocketDebuggerUrl'), str):
+            return False
+        socket_url = urlparse(payload['webSocketDebuggerUrl'])
+        return (socket_url.scheme == 'ws' and socket_url.hostname in ('127.0.0.1', 'localhost')
+                and socket_url.port == port and not socket_url.username and not socket_url.password
+                and socket_url.path.startswith('/devtools/browser/'))
+    except (OSError, ValueError, http.client.HTTPException):
+        return False
+    finally:
+        connection.close()
+
+
+def launch_browser(url, endpoint, timeout=10):
     command = browser_command(url, endpoint)
-    profile = ROOT / '.browser-profile'
+    result = {'browser': 'ready', 'next': 'cx.ps1 check'}
+    if debugger_is_ready(endpoint):
+        return {**result, 'reused': True}
     subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    return {'opened': url, 'profile': str(profile), 'next': 'cx.ps1 check'}
+    deadline = time.monotonic() + timeout
+    while True:
+        if debugger_is_ready(endpoint):
+            return {**result, 'reused': False}
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TaskError('BROWSER_START_NOT_READY: run Show-Edge-Launcher.ps1 once to reveal the desktop launcher')
+        time.sleep(min(0.25, remaining))
 
 
 def execute(args):
     if args.command == 'open':
-        return launch_browser(args.url, args.endpoint)
+        return launch_browser(args.url, args.endpoint, timeout=min(args.timeout, 10))
     with Browser(args.endpoint, args.timeout * 1000) as browser:
         if args.command == 'check':
             return browser.check()
@@ -473,10 +504,10 @@ def main():
     threading.Thread(target=deadline, daemon=True).start()
     try:
         result = execute(args)
-        print(json.dumps({'ok': True, **result}, ensure_ascii=False))
+        print(json.dumps({'ok': True, **result}))
         return 0
     except Exception as exc:
-        print(json.dumps({'ok': False, 'error': redact(exc)}, ensure_ascii=False))
+        print(json.dumps({'ok': False, 'error': redact(exc)}))
         return 1
     finally:
         finished.set()

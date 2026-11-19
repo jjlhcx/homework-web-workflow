@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parent
 FILES = (
     'README.md', 'START.md', 'LAUNCH.json', 'ROOMMATE-TEST.md', 'LICENSE', '.gitignore', 'requirements.txt',
     'cx.py', 'page.js', 'list.js', 'runtime.ps1', 'cx.ps1', 'setup.ps1', 'setup_deps.py', 'doctor.ps1', 'Open-Edge.cmd',
+    'Show-Edge-Launcher.ps1',
     'skills/homework-web/SKILL.md', 'docs/sources.md', 'docs/verification.md',
     'tests/test_plan.py', 'tests/test_page.py', 'tests/test_lists.py',
     'tests/test_portable.py', 'tests/test_package.py', 'pack.py',

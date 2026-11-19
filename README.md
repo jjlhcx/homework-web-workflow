@@ -1,6 +1,6 @@
 # AI 作业工作流：本地测试版
 
-当前可下载：[v0.3.2 公开预发布](https://github.com/jjlhcx/homework-web-workflow/releases/tag/v0.3.2)。本次试用限 Windows 电脑版 WorkBuddy，读取本人已完成的学习通普通作业，不填写、不暂存、不提交。压缩包中的开发文档保留了打包时的测试记录。
+买家交付目标是一段让 AI 读取本仓库技能的启动说明。当前已备好独立源码与本地入口，尚未发布 GitHub 仓库，也尚未验收 WorkBuddy／DeepSeek Harness 的首次用户安装全流程。
 
 仅做电脑浏览器中的学习通页面。首批环境 Windows＋Edge＋Python 3.10+；需要能执行命令和访问本地文件的 AI。AI 自己生成答案，本工具负责页面读取、填写、暂存和核对，不提供模型账号、API 额度或后台模型服务。
 
@@ -12,7 +12,7 @@
 
 先运行 `./doctor.ps1`。会检查 PATH、注册表和常见的个人 Python 安装目录；也可用 CX_PYTHON 指定。依赖缺少时运行 `./setup.ps1`，只安装到本目录 vendor。已有可用依赖直接复用；否则优先试用 wheelhouse 的离线包。在线下载失败时停止，可将与所用 Python 和 Windows 架构匹配的官方 wheel（含传递依赖）放进 wheelhouse 后重试。
 
-在项目目录双击 Open-Edge.cmd，然后登录并打开指定作业。本人启动的窗口不依赖 AI 后台任务。也可以在自己的终端运行 `./cx.ps1 open`。登录资料保存在本目录 .browser-profile，不能分享。让 AI 先执行 `check` → `read`；首次测试只读。参数见 `./cx.ps1 --help`。
+先让 AI 执行 `check`，如果没连上，再试一次 `./cx.ps1 open`。自动启动未就绪时，让 AI 运行 Show-Edge-Launcher.ps1；资源管理器会定位到 Open-Edge.cmd，双击选中的文件即可。若资源管理器没有弹出，使用 AI 给出的完整路径粘贴到 Win+R。网页登录和选择作业由本人完成；首次测试只读。登录资料保存在 .browser-profile，不能分享。
 
 可用环境变量 CX_PYTHON 指定现有 Python 可执行文件，CX_BROWSER 指定已安装 Edge 路径。所有命令从本目录执行；其他目录使用 cx.ps1 的绝对路径。调试连接只接受本机 HTTP 端口，默认 9222；若端口被占用可用 `./cx.ps1 --endpoint http://127.0.0.1:9333 open`，后续命令使用相同 endpoint。
 
@@ -27,6 +27,8 @@
 - `./cx.ps1 capture-images --course <ID> --work <ID> --limit 4` 为同一份普通作业预览最多四道含图题，只将题干和选项图片保存到本地。工具不会识别公式或回填图片题；能看图的 AI 还需要单独核对截图内容。
 
 ## 排错
+
+命令打印的 JSON 用 Unicode 转义保护中文，解析后正常显示；保存到本地的 JSON 仍是可直接阅读的 UTF-8。
 
 PYTHON_MISSING：配置 Python 路径。DEPENDENCY_MISSING：运行 setup.ps1。BROWSER_UNAVAILABLE：运行 open，再 check；不要重新写 CDP 客户端。TARGET_NOT_FOUND：确保目标作业已打开且 ID 来自当前页面。AMBIGUOUS_TARGET／AMBIGUOUS_LIST：只保留一个匹配入口。UNSUPPORTED_LAYOUT：说明页面尚未适配。ANSWER_CONFLICT：展示差异，不覆盖用户内容。SAVE_UNCERTAIN：先重新读页面，不重复点保存。
 
