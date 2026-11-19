@@ -1,6 +1,6 @@
 # AI 作业工作流：本地测试版
 
-买家交付目标是一段让 AI 读取本仓库技能的启动说明。当前已备好独立源码与本地入口，尚未发布 GitHub 仓库，也尚未验收 WorkBuddy／DeepSeek Harness 的首次用户安装全流程。
+当前可下载：[v0.3.3 公开预发布](https://github.com/jjlhcx/homework-web-workflow/releases/tag/v0.3.3)。本次试用针对 Windows 电脑版 WorkBuddy 和本人已完成的普通作业，不填写、不暂存、不提交。自动开页受客户端环境影响；资源管理器定位并双击启动已在另一台电脑验证。v0.3.2 保留用于回退。
 
 仅做电脑浏览器中的学习通页面。首批环境 Windows＋Edge＋Python 3.10+；需要能执行命令和访问本地文件的 AI。AI 自己生成答案，本工具负责页面读取、填写、暂存和核对，不提供模型账号、API 额度或后台模型服务。
 
